@@ -2,7 +2,7 @@
 //  TableViewController.swift
 //  SO-33975355
 //
-//  Copyright © 2017 Xavier Schott
+//  Copyright © 2018 Xavier Schott
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,8 @@ import UIKit
 class TableViewController: UITableViewController {
 
     let count:Int = 15
-    var cachedImages:[UIImage?]?
-    var cachedUrls:[URL?]?
+    var cachedImages = [UIImage?]()
+    var cachedUrls = [URL?]()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -54,13 +54,13 @@ class TableViewController: UITableViewController {
                                 if let searchStart = text.range(of: search) {
                                     let searchRange:Range = (searchStart.upperBound ..< text.index(searchStart.upperBound, offsetBy: 1024))
                                     if let matchEnd = text.range(of: ".jpg",
-                                        options: .caseInsensitive, range:searchRange, locale: nil) {
-                                            let fullRange:Range = (searchStart.upperBound ..< matchEnd.upperBound)
-                                            let jpegPath:String = text.substring(with: fullRange)
-                                            if let url = URL(string: jpegPath) {
-                                                validJpgURL = true
-                                                self.loadImage(url, indexPath: indexPath)
-                                            }
+                                                                 options: .caseInsensitive, range:searchRange, locale: nil) {
+                                        let fullRange:Range = (searchStart.upperBound ..< matchEnd.upperBound)
+                                        let jpegPath = text[fullRange]
+                                        if let url = URL(string: String(jpegPath)) {
+                                            validJpgURL = true
+                                            self.loadImage(url, indexPath: indexPath)
+                                        }
                                     }
                                 }
                             }
@@ -84,8 +84,8 @@ class TableViewController: UITableViewController {
                 if let data:Data = try? Data(contentsOf: location) {
                     if let image:UIImage = UIImage(data: data) {
                         validImage = true
-                        self.cachedImages![indexPath.row] = image
-                        self.cachedUrls![indexPath.row] = url
+                        self.cachedImages[indexPath.row] = image // Save into the cache
+                        self.cachedUrls[indexPath.row] = url     // Save into the cache
                         DispatchQueue.main.async(execute: { () -> Void in
                             self.tableView.beginUpdates()
                             self.tableView.reloadRows(
@@ -106,8 +106,10 @@ class TableViewController: UITableViewController {
     }
 
     @IBAction func doRefreshAction(_ sender: Any) {
+        // Clear the caches
         cachedImages = [UIImage?](repeating: nil, count: count)
         cachedUrls = [URL?](repeating:nil, count: count)
+
         for index in 0 ..< count {
             let indexPath = IndexPath(row: index, section: 0)
             fetchRandomURL(indexPath)
@@ -123,12 +125,11 @@ class TableViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell
     {
         let cell = tableView.dequeueReusableCell(withIdentifier: "imageTableViewCell") as! TableViewCell
-        cell.leftImageView.image = cachedImages![indexPath.row]
-        if let url = cachedUrls![indexPath.row] {
-            cell.rightLabel.text = url.lastPathComponent
-        } else {
-            cell.rightLabel.text = "\(indexPath.row + 1)"
-        }
+
+        // Read from the cache
+        cell.leftImageView.image = cachedImages[indexPath.row]
+        cell.rightLabel.text =  cachedUrls[indexPath.row]?.lastPathComponent ?? "\(indexPath.row + 1)"
+
         return cell
     }
 }
